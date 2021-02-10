@@ -1,0 +1,21 @@
+require:
+  - rubocop-rspec
+  - rubocop-performance
+
+AllCops:
+  NewCops: enable
+
+Style/ClassAndModuleChildren:
+  EnforcedStyle: compact
+
+Style/DoubleNegation:
+  Enabled: false
+
+Style/NegatedIf:
+  Enabled: false
+
+Style/NegatedWhile:
+  Enabled: false
+
+Metrics/BlockLength:
+  ExcludedMethods: ['describe', 'context', 'feature', 'scenario']

@@ -1,0 +1,69 @@
+# frozen_string_literal: true
+
+require './server/storage'
+
+class Table
+  STORAGE = Storage.new
+
+  attr_reader :columns, :rows
+
+  def initialize
+    @columns = []
+    @rows = []
+  end
+
+  def from(file_name)
+    @table = STORAGE.get(file_name)
+  end
+
+  def select(columns)
+    @table.map! do |item|
+      item.slice(*columns)
+    end
+  end
+
+  def take(limit)
+    limit = 0 if !limit.is_a?(Numeric)
+
+    @table = @table.take([0, limit].max)
+  end
+
+  def order_by(column)
+    @table.sort_by! do |item|
+      -item[column] if item[column].is_a?(Numeric)
+    end
+  end
+
+  def join(file_name, column)
+    other = self.class.new.from(file_name).data
+
+    hash = Hash.new { |h, k| h[k] = [] }
+    (0...@table.size).each do |i|
+      hash[@table[i][column]] << @table[i]
+    end
+
+    @new_table = []
+    (0...other.size).each do |i|
+      value = other[i][column]
+      hash[value].each do |row|
+        @new_table << row.merge(other[i])
+      end
+    end
+
+    @table = @new_table
+  end
+
+  def count_by(column)
+    @table = counts(column).map do |value, count|
+      { column => value, 'count' => count }
+    end
+  end
+
+  private
+
+  def counts(column)
+    @table.each_with_object(Hash.new(0)) do |item, counts|
+      counts[item[column]] += 1
+    end
+  end
+end
