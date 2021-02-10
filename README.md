@@ -3,6 +3,8 @@
 Assignment description:
 https://docs.google.com/document/d/10yqL3IIQ94-BjLOWMNEr4lKC68G2g-EgUroIRyCs7E0/edit
 
+Sort-Merge join has been implemented! :)
+
 ## Installation
 
 Requirements:

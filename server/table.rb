@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'csv'
+require 'set'
 
 require './lib/settings'
 
@@ -70,13 +71,16 @@ class Table
 
   # In case of a non-numeric value, the comparison is done using `nil` as value
   def order_by(column)
-    puts @index, column
     return if !@index.key?(column)
 
     @rows.sort_by! do |row|
       value = row[@index[column]]
 
-      -value if value.is_a?(Numeric)
+      if value.is_a?(Numeric)
+        -value
+      else
+        Float::INFINITY
+      end
     end
   end
 
@@ -87,6 +91,59 @@ class Table
     right = self.class.new
     right.from(file_name)
 
+    sort_merge(left, right, column)
+  end
+
+  def sort_merge(left, right, column)
+    left_index = left.index[column]
+    right_index = right.index[column]
+    return reset if left_index.nil? || right_index.nil?
+
+    left_sorted = left.rows.sort_by do |row|
+      row[left_index]
+    end
+    right_sorted = right.rows.sort_by do |row|
+      row[right_index]
+    end
+
+    joined_rows = []
+    (left_subset, left_key) = advance(left_sorted, left_index)
+    (right_subset, right_key) = advance(right_sorted, right_index)
+    while !left_subset.empty? && !right_subset.empty?
+      if left_key == right_key
+        left_subset.each do |left_row|
+          right_subset.each do |right_row|
+            joined_rows << left_row + right_row.reject.with_index do |_, index|
+              index == right_index
+            end
+          end
+        end
+
+        (left_subset, left_key) = advance(left_sorted, left_index)
+        (right_subset, right_key) = advance(right_sorted, right_index)
+      elsif left_key < right_key
+        (left_subset, left_key) = advance(left_sorted, left_index)
+      else
+        (right_subset, right_key) = advance(right_sorted, right_index)
+      end
+    end
+
+    self.attributes = left.attributes + (right.attributes - [column])
+    @rows = joined_rows
+  end
+
+  def advance(sorted, index)
+    subset = Set.new
+    key = sorted.dig(0, index)
+    while !sorted.empty? && sorted[0][index] == key
+      subset << sorted[0]
+      sorted.shift # Amortized constant
+    end
+
+    [subset, key]
+  end
+
+  def hash_join(left, right, column)
     left_index = left.index[column]
     right_index = right.index[column]
     return reset if left_index.nil? || right_index.nil?
@@ -95,19 +152,19 @@ class Table
       right_row[right.index[column]]
     end
 
-    @joined_rows = []
+    joined_rows = []
     left.rows.each do |left_row|
       value = left_row[left.index[column]]
 
-      right_hash[value].each do |right_row|
-        @joined_rows << left_row + right_row.reject.with_index do |_, index|
+      right_hash[value]&.each do |right_row|
+        joined_rows << left_row + right_row.reject.with_index do |_, index|
           index == right.index[column]
         end
       end
     end
 
     self.attributes = left.attributes + (right.attributes - [column])
-    @rows = @joined_rows
+    @rows = joined_rows
   end
 
   def count_by(column)
