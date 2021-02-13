@@ -42,7 +42,7 @@ class Client
     return @socket if defined?(@socket)
 
     @socket = ZMQ::Socket.new(ZMQ::REQ)
-    @socket.bind(settings['queue_host'])
+    @socket.connect(settings['queue_host'])
     @socket
   end
 

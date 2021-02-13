@@ -45,7 +45,7 @@ class Storage
     return @socket if defined?(@socket)
 
     @socket = ZMQ::Socket.new(ZMQ::REP)
-    @socket.connect(settings['storage_host'])
+    @socket.bind(settings['storage_host'])
     @socket
   end
 

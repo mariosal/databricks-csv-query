@@ -47,7 +47,7 @@ class Server
     return @client_socket if defined?(@client_socket)
 
     @client_socket = ZMQ::Socket.new(ZMQ::REP)
-    @client_socket.connect(settings['queue_host'])
+    @client_socket.bind(settings['queue_host'])
     @client_socket
   end
 
@@ -55,7 +55,7 @@ class Server
     return @storage_socket if defined?(@storage_socket)
 
     @storage_socket = ZMQ::Socket.new(ZMQ::REQ)
-    @storage_socket.bind(settings['storage_host'])
+    @storage_socket.connect(settings['storage_host'])
     @storage_socket
   end
 
